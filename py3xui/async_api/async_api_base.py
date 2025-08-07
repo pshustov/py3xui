@@ -43,6 +43,7 @@ class AsyncBaseApi:
         _request_with_retry: Makes a request to the XUI API with retries.
         _post: Makes a POST request to the XUI API.
         _get: Makes a GET request to the XUI API.
+        _set_http_basic_auth: Sets the credentials for HTTP Basic Authentication.
 
     """
 
@@ -64,6 +65,7 @@ class AsyncBaseApi:
         self._session: str | None = None
         self._cookie_name: str | None = None
         self.logger = logger or logging.getLogger(__name__)
+        self._http_auth_credentials: tuple[str, str] | None = None
 
     @property
     def host(self) -> str:
@@ -152,6 +154,16 @@ class AsyncBaseApi:
         Arguments:
             value (str | None): The name of the cookie for the XUI API."""
         self._cookie_name = value
+    
+    def _set_http_basic_auth(self, username: str, password: str) -> None:
+        """Sets the credentials for HTTP Basic Authentication for all subsequent requests.
+
+        Arguments:
+            username (str): The username for HTTP Basic Authentication.
+            password (str): The password for HTTP Basic Authentication.
+        """
+        self.logger.info("Setting HTTP Basic Authentication credentials.")
+        self._http_auth_credentials = (username, password)
 
     def _url(self, endpoint: str) -> str:
         """Returns the URL for the XUI API (adds the endpoint to the host URL).
@@ -212,7 +224,10 @@ class AsyncBaseApi:
                     verify = True
 
                 async with httpx.AsyncClient(
-                    cookies=self.cookies, verify=verify, follow_redirects=True
+                    cookies=self.cookies, 
+                    verify=verify,
+                    follow_redirects=True,
+                    auth=self._http_auth_credentials
                 ) as client:
                     if method == ApiFields.GET:
                         response = await client.get(url, headers=headers, **kwargs)

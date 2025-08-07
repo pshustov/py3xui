@@ -41,6 +41,7 @@ class Api:
     Public Methods:
         login: Logs into the XUI API.
         from_env: Creates an instance of the API from environment variables.
+        set_http_basic_auth: Sets the credentials for HTTP Basic Authentication. 
 
     Examples:
         ```python
@@ -185,6 +186,18 @@ class Api:
             custom_certificate_path = env.tls_cert_path()
 
         return cls(host, username, password, use_tls_verify, custom_certificate_path, logger)
+
+    def set_http_basic_auth(self, username: str, password: str) -> None:
+        """Sets the credentials for HTTP Basic Authentication for all subsequent requests.
+
+        Arguments:
+            username (str): The username for HTTP Basic Authentication.
+            password (str): The password for HTTP Basic Authentication.
+        """
+        self.client._set_http_basic_auth(username, password)
+        self.inbound._set_http_basic_auth(username, password)
+        self.database._set_http_basic_auth(username, password)
+        self.server._set_http_basic_auth(username, password)
 
     def login(self, two_factor_code: str | int | None = None) -> None:
         """Logs into the XUI API and sets the session cookie for the client, inbound, and
