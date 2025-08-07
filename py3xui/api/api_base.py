@@ -55,6 +55,7 @@ class BaseApi:
         _request_with_retry: Makes a request to the XUI API with retries.
         _post: Makes a POST request to the XUI API.
         _get: Makes a GET request to the XUI API.
+        _set_http_basic_auth: Sets the credentials for HTTP Basic Authentication.
 
     """
 
@@ -76,6 +77,7 @@ class BaseApi:
         self._session: str | None = None
         self._cookie_name: str | None = None
         self.logger = logger or logging.getLogger(__name__)
+        self._http_auth_session: requests.Session = requests.Session()
 
     @property
     def host(self) -> str:
@@ -164,6 +166,16 @@ class BaseApi:
         Arguments:
             value (str | None): The name of the cookie for the XUI API."""
         self._cookie_name = value
+
+    def _set_http_basic_auth(self, username: str, password: str) -> None:
+        """Sets the credentials for HTTP Basic Authentication for all subsequent requests.
+
+        Arguments:
+            username (str): The username for HTTP Basic Authentication.
+            password (str): The password for HTTP Basic Authentication.
+        """
+        self.logger.info("Setting HTTP Basic Authentication for session.")
+        self._http_auth_session.auth = (username, password)
 
     def login(self, two_factor_code: str | int | None = None) -> None:
         """Logs into the XUI API and sets the session cookie if successful.
@@ -328,7 +340,7 @@ class BaseApi:
             requests.Response: The response from the XUI API."""
         if not kwargs.pop("is_login", False) and not self.session:
             raise ValueError("Before making a POST request, you must use the login() method.")
-        return self._request_with_retry(requests.post, url, headers, json=data, **kwargs)
+        return self._request_with_retry(self._http_auth_session.post, url, headers, json=data, **kwargs)
 
     def _get(self, url: str, headers: dict[str, str], **kwargs) -> requests.Response:
         """Makes a GET request to the XUI API.
@@ -345,4 +357,4 @@ class BaseApi:
             requests.Response: The response from the XUI API."""
         if not kwargs.pop("is_login", False) and not self.session:
             raise ValueError("Before making a GET request, you must use the login() method.")
-        return self._request_with_retry(requests.get, url, headers, **kwargs)
+        return self._request_with_retry(self._http_auth_session.get, url, headers, **kwargs)

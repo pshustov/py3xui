@@ -24,5 +24,5 @@ class Settings(JsonStringModel):
     """
 
     clients: list[Client] = []
-    decryption: str = ""
+    decryption: str = "none"
     fallbacks: list = []
