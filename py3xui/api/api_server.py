@@ -1,9 +1,7 @@
 """This module contains the ServerApi class for handling server in the XUI API."""
 
-from typing import Any
-
 from py3xui.api.api_base import ApiFields, BaseApi
-from py3xui.server.server import Server
+from py3xui.server.server import RealityKeyPair, Server
 
 
 class ServerApi(BaseApi):
@@ -51,7 +49,7 @@ class ServerApi(BaseApi):
             api.server.get_db(db_save_path)
             ```
         """
-        endpoint = "server/getDb"
+        endpoint = "panel/api/server/getDb"
         headers = {"Accept": "application/octet-stream"}
         url = self._url(endpoint)
         self.logger.info("Getting DB backup...")
@@ -84,15 +82,34 @@ class ServerApi(BaseApi):
             print(f"Memory Used: {status.mem.current}/{status.mem.total} bytes")
             ```
         """
-        endpoint = "server/status"
+        endpoint = "panel/api/server/status"
         headers = {"Accept": "application/json"}
-        data: dict[str, Any] = {}
         url = self._url(endpoint)
         self.logger.info("Getting server status...")
 
-        response = self._post(url, headers, data)
+        response = self._get(url, headers)
         server_json = response.json().get(ApiFields.OBJ)
 
         self.logger.debug("Server status: %s", server_json)
         server = Server.model_validate(server_json)
         return server
+
+    def generate_reality_keys(self) -> RealityKeyPair:
+        """Generates a new Reality (X25519) key pair on the server.
+
+        Returns:
+            RealityKeyPair: Generated key pair containing private and public keys.
+        """
+        endpoint = "panel/api/server/getNewX25519Cert"
+        headers = {"Accept": "application/json"}
+        url = self._url(endpoint)
+        self.logger.info("Generating new Reality keys...")
+
+        response = self._get(url, headers)
+        keys_json = response.json().get(ApiFields.OBJ)
+
+        if not keys_json:
+            raise ValueError("Reality keys were not returned by the server.")
+
+        self.logger.debug("Reality keys generated: %s", keys_json)
+        return RealityKeyPair.model_validate(keys_json)

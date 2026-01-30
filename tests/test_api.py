@@ -272,7 +272,7 @@ def test_get_status():
     response_example = json.load(open(os.path.join(RESPONSES_DIR, "get_server_status.json")))
 
     with requests_mock.Mocker() as m:
-        m.post(f"{HOST}/server/status", json=response_example)
+        m.get(f"{HOST}/panel/api/server/status", json=response_example)
         api = Api(HOST, USERNAME, PASSWORD)
         api.session = SESSION
 
@@ -294,7 +294,7 @@ def test_get_db():
 
     with requests_mock.Mocker() as m:
         m.get(
-            f"{HOST}/server/getDb",
+            f"{HOST}/panel/api/server/getDb",
             content=test_content,
             headers={"Content-Type": "application/octet-stream"},
         )
@@ -319,13 +319,36 @@ def test_get_db_failed():
     Test error handling when getting DB backup fails
     """
     with requests_mock.Mocker() as m:
-        m.get(f"{HOST}/server/getDb", status_code=500)
+        m.get(f"{HOST}/panel/api/server/getDb", status_code=500)
 
         api = Api(HOST, USERNAME, PASSWORD)
         api.session = SESSION
 
         with pytest.raises(Exception):
             api.server.get_db("failed_backup.db")
+
+
+def test_generate_reality_keys():
+    """
+    Test for generating Reality (X25519) keys
+    """
+    response_example = {
+        ApiFields.SUCCESS: True,
+        ApiFields.MSG: "",
+        ApiFields.OBJ: {"privateKey": "priv", "publicKey": "pub"},
+    }
+
+    with requests_mock.Mocker() as m:
+        m.get(f"{HOST}/panel/api/server/getNewX25519Cert", json=response_example)
+
+        api = Api(HOST, USERNAME, PASSWORD)
+        api.session = SESSION
+
+        keys = api.server.generate_reality_keys()
+
+        assert m.called, "Mocked request was not called"
+        assert keys.private_key == "priv", f"Expected 'priv', got {keys.private_key}"
+        assert keys.public_key == "pub", f"Expected 'pub', got {keys.public_key}"
 
 
 # endregion
